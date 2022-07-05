@@ -1243,3 +1243,27 @@ func TestClient_InfoFieldsTest(t *testing.T) {
 				Field{Name: "numeric", Type: 1, Sortable: false, Options: NumericFieldOptions{Sortable: false, NoIndex: false, As: ""}}}),
 		info.Schema.Fields)
 }
+
+func TestClient_InfoNoIndexField(t *testing.T) {
+	c := createClient("ft-info-noindex-test")
+	flush(c)
+	schema := NewSchema(DefaultOptions).
+		AddField(NewTextFieldOptions("text", TextFieldOptions{NoIndex: false})).
+		AddField(NewTextFieldOptions("text2", TextFieldOptions{NoIndex: true}))
+	// In this example we will only index keys started by product:
+	indexDefinition := NewIndexDefinition().AddPrefix("ft-info-noindex-test:")
+	// Add the Index Definition
+	err := c.CreateIndexWithIndexDefinition(schema, indexDefinition)
+	assert.Nil(t, err)
+
+	info, err := c.Info()
+	assert.Nil(t, err)
+	// Check to make sure the fields that we get back match the fields that we created
+	assert.Equal(t,
+		[]Field(
+			[]Field{
+				Field{Name: "text", Type: 0, Sortable: false, Options: TextFieldOptions{Weight: 1, Sortable: false, NoStem: false, NoIndex: false, PhoneticMatcher: "", As: ""}},
+				Field{Name: "text2", Type: 0, Sortable: false, Options: TextFieldOptions{Weight: 1, Sortable: false, NoStem: false, NoIndex: true, PhoneticMatcher: "", As: ""}},
+			}),
+		info.Schema.Fields)
+}
